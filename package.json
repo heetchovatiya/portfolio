@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "build": "echo 'No build step required for pure Node.js backend'"
   },
   "keywords": [],
   "author": "",
@@ -15,5 +17,8 @@
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "resend": "^4.5.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
   }
 }

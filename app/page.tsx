@@ -164,7 +164,9 @@ const skills = [
   { name: "AI Integration", icon: Brain, description: "OpenAI API, Machine Learning, Chatbots" }
 ];
 
-export default function Home() {
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+export default function Portfolio() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>('All');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -215,26 +217,60 @@ export default function Home() {
     return Object.keys(errors).length === 0;
   };
 
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+    
+  //   if (!validateForm()) {
+  //     return;
+  //   }
+    
+  //   setIsLoading(true);
+    
+  //   // Simulate form submission
+  //   await new Promise(resolve => setTimeout(resolve, 2000));
+    
+  //   // Reset form
+  //   setFormData({ name: '', email: '', message: '' });
+  //   setFormErrors({});
+  //   setIsLoading(false);
+    
+  //   // Show success message (you could add a toast here)
+  //   alert('Thank you for your message! I\'ll get back to you soon.');
+  // };
+
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
+  e.preventDefault();
+
+  if (!validateForm()) {
+    return;
+  }
+
+  setIsLoading(true);
+
+  try {
+    const res = await fetch(`${API_URL}/api/contact`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
+    });
+
+    if (!res.ok) {
+      throw new Error('Failed to send message.');
     }
-    
-    setIsLoading(true);
-    
-    // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
+
+    // Optionally handle response here if your API returns a message
+    // const data = await res.json();
+
     // Reset form
     setFormData({ name: '', email: '', message: '' });
     setFormErrors({});
-    setIsLoading(false);
-    
-    // Show success message (you could add a toast here)
     alert('Thank you for your message! I\'ll get back to you soon.');
-  };
+  } catch (error) {
+    alert('Sorry, something went wrong. Please try again later.');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

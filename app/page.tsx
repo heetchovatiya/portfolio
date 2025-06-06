@@ -164,7 +164,7 @@ const skills = [
   { name: "AI Integration", icon: Brain, description: "OpenAI API, Machine Learning, Chatbots" }
 ];
 
-export default function Portfolio() {
+export default function Home() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>('All');
   const [isMenuOpen, setIsMenuOpen] = useState(false);

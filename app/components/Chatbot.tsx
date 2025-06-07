@@ -6,7 +6,7 @@ import React, { useState, useRef, useEffect, FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea'; // Assuming you have a Textarea component
+import { Textarea } from '@/components/ui/textarea'; // IMPORTANT: Ensure this component exists in your Shadcn UI setup
 
 // Icons from lucide-react (install if you haven't: npm install lucide-react)
 import { Brain, Code, X, ArrowRight, Loader2, CheckCircle, XCircle } from 'lucide-react';
@@ -61,7 +61,7 @@ export default function Chatbot() {
     }
   }, [isChatOpen, hasChatOpenedBefore]);
 
-  // --- NEW: Click outside to close chat functionality ---
+  // --- Click outside to close chat functionality ---
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       // If the chat is open AND the click happened outside the chat window element
@@ -79,9 +79,7 @@ export default function Chatbot() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isChatOpen]); // Rerun effect when isChatOpen changes
-
-  // ... (handleChatSubmit and handleContactFormSubmit functions remain the same as before) ...
+  }, [isChatOpen]);
 
   const handleChatSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -90,6 +88,7 @@ export default function Chatbot() {
 
     const userMessageContent = currentMessage;
     setCurrentMessage('');
+    // --- CORRECTED LINE: prevL -> prev ---
     setChatMessages(prev => [...prev, { role: 'user', content: userMessageContent }]);
     setIsLoading(true);
 
@@ -191,8 +190,10 @@ export default function Chatbot() {
 
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    // Outer container for the fixed chatbot position - also made responsive
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 md:bottom-6 md:right-6 md:left-auto md:transform-none z-50">
       {!isChatOpen ? (
+        // Chat open button - also made responsive
         <Button
           onClick={() => setIsChatOpen(true)}
           className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-600 to-purple-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 relative group overflow-hidden"
@@ -205,10 +206,26 @@ export default function Chatbot() {
           <span className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300 blur-sm"></span>
         </Button>
       ) : (
-        // --- Added ref={chatRef} to the main chat window Card ---
-        <Card ref={chatRef} className="w-[98vw] max-w-[400px] h-[75vh] max-h-[560px] bg-gray-50 shadow-2xl border border-gray-200 rounded-3xl overflow-hidden animate-scale-in-fade flex flex-col">
+        // Main Chat Window - significantly modified for responsiveness
+        <Card
+          ref={chatRef}
+          className="
+            w-[calc(100vw-2rem)] /* Full width minus 1rem padding on each side for mobile */
+            h-[80vh] /* Taller on mobile to fill screen more */
+            max-h-[calc(100vh-2rem)] /* Ensures it doesn't exceed screen height on mobile */
+            rounded-2xl /* Slightly less rounded for mobile */
+            bg-gray-50 shadow-2xl border border-gray-200 overflow-hidden animate-scale-in-fade flex flex-col
+            
+            /* Medium screens (md) and up */
+            md:w-full /* Let it take full width up to its max-w */
+            md:max-w-[400px] /* Original desktop/tablet max width */
+            md:h-[75vh] md:max-h-[560px] /* Original desktop height */
+            md:rounded-3xl /* Original desktop rounding */
+          "
+        >
+        {/* Note: Positioning for md screens is handled by the parent div className="... md:bottom-6 md:right-6 md:left-auto md:transform-none" */}
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-700 text-white rounded-t-3xl shadow-md">
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-700 text-white rounded-t-2xl md:rounded-t-3xl shadow-md">
             <div className="flex items-center space-x-3">
               <div className="relative">
                 <div className="w-10 h-10 rounded-full bg-white text-indigo-600 flex items-center justify-center shadow-lg ring-2 ring-white">
@@ -221,7 +238,7 @@ export default function Chatbot() {
                 <div className="text-xs text-indigo-100 opacity-90 font-mono">Online</div>
               </div>
             </div>
-            {/* --- X Button to Close Chat (Already Exists!) --- */}
+            {/* --- X Button to Close Chat --- */}
             <Button
               onClick={() => setIsChatOpen(false)}
               variant="ghost"
@@ -233,9 +250,8 @@ export default function Chatbot() {
           </div>
 
           {/* Chat message display area */}
-          {/* --- Added min-h-0 to flex containers for robust scrolling --- */}
-          <div className="flex-1 flex flex-col min-h-0">
-            <div className="flex-1 px-4 py-5 overflow-y-auto space-y-4 custom-scroll bg-white min-h-0">
+          <div className="flex-1 flex flex-col min-h-0"> {/* min-h-0 is crucial for flex-item scrolling */}
+            <div className="flex-1 px-4 py-5 overflow-y-auto space-y-4 custom-scroll bg-white min-h-0"> {/* min-h-0 and overflow-y-auto */}
               {chatMessages.map((message, index) => (
                 <div
                   key={index}

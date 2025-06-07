@@ -376,23 +376,48 @@ export default function Portfolio() {
             </button>
           </div>
           
-          {/* Mobile Menu */}
-          {isMenuOpen && (
-            <div className="md:hidden py-4 border-t border-[#EDEAE5]">
-              {['About', 'Services', 'Portfolio', 'Testimonials', 'Contact'].map((item) => (
-                <button
-                  key={item}
-                  onClick={() => scrollToSection(item.toLowerCase())}
-                  className="block w-full text-left py-2 text-[#666666] hover:text-[#8B5CF6] transition-colors duration-200"
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
-          )}
+ 
         </div>
       </nav>
+      {/* // ...inside your main Portfolio function *outside* the <nav> but *inside* the outer <div> return: */}
 
+{isMenuOpen && (
+  <div
+    className="
+      fixed inset-0 z-[9999] md:hidden
+      bg-white
+      w-full h-full
+      flex flex-col
+      pt-[64px] /* adjust if your navbar height is different */
+      animate-fade-in-fast
+      shadow-2xl
+    "
+    style={{
+      background: '#fff',
+      opacity: 1,
+      pointerEvents: 'auto'
+    }}
+  >
+    <div className="flex flex-col space-y-2 w-full px-8">
+      {['About', 'Services', 'Portfolio', 'Testimonials', 'Contact'].map((item) => (
+        <button
+          key={item}
+          onClick={() => scrollToSection(item.toLowerCase())}
+          className="w-full text-left py-4 px-3 text-xl text-[#333333] font-semibold rounded hover:bg-[#F6F3EF] transition-colors duration-150"
+        >
+          {item}
+        </button>
+      ))}
+    </div>
+    <button
+      onClick={() => setIsMenuOpen(false)}
+      className="absolute top-4 right-4 text-3xl text-[#8B5CF6] bg-white bg-opacity-90 rounded-full shadow-md w-12 h-12 flex items-center justify-center"
+      aria-label="Close menu"
+    >
+      <X size={32} />
+    </button>
+  </div>
+)}
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">

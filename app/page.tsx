@@ -29,6 +29,7 @@ import {
   Smartphone,
   Server
 } from 'lucide-react';
+import Chatbot from './components/Chatbot';
 
 // Types
 interface Project {
@@ -275,60 +276,60 @@ export default function Portfolio() {
   }
 };
 
-const handleChatSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+// const handleChatSubmit = async (e: React.FormEvent) => {
+//   e.preventDefault();
 
-  if (!currentMessage.trim() || isLoading) return;
+//   if (!currentMessage.trim() || isLoading) return;
 
-  const userMessage = currentMessage;
-  setCurrentMessage('');
-  setChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
-  setIsLoading(true);
+//   const userMessage = currentMessage;
+//   setCurrentMessage('');
+//   setChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+//   setIsLoading(true);
 
-  // Add a typing indicator for the assistant
-  setChatMessages(prev => [
-    ...prev,
-    { role: 'assistant', content: '•••', typing: true }
-  ]);
+//   // Add a typing indicator for the assistant
+//   setChatMessages(prev => [
+//     ...prev,
+//     { role: 'assistant', content: '•••', typing: true }
+//   ]);
 
-  try {
-    if (!WORKER_URL) throw new Error('Worker URL not configured.');
+//   try {
+//     if (!WORKER_URL) throw new Error('Worker URL not configured.');
 
-    const res = await fetch(WORKER_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: userMessage }),
-    });
+//     const res = await fetch(WORKER_URL, {
+//       method: 'POST',
+//       headers: { 'Content-Type': 'application/json' },
+//       body: JSON.stringify({ message: userMessage }),
+//     });
 
-    if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.error || 'Failed to get response');
-    }
+//     if (!res.ok) {
+//       const errorData = await res.json();
+//       throw new Error(errorData.error || 'Failed to get response');
+//     }
 
-    const data = await res.json();
+//     const data = await res.json();
 
-    // Remove the typing indicator
-    setChatMessages(prev =>
-      prev.filter(msg => !(msg.role === 'assistant' && msg.typing))
-    );
+//     // Remove the typing indicator
+//     setChatMessages(prev =>
+//       prev.filter(msg => !(msg.role === 'assistant' && msg.typing))
+//     );
 
-    setChatMessages(prev => [
-      ...prev,
-      { role: 'assistant', content: data.response }
-    ]);
-  } catch (err: any) {
-    // Remove the typing indicator
-    setChatMessages(prev =>
-      prev.filter(msg => !(msg.role === 'assistant' && msg.typing))
-    );
-    setChatMessages(prev => [
-      ...prev,
-      { role: 'assistant', content: `Sorry, I couldn't get a response. ${err?.message || ''}` }
-    ]);
-  } finally {
-    setIsLoading(false);
-  }
-};
+//     setChatMessages(prev => [
+//       ...prev,
+//       { role: 'assistant', content: data.response }
+//     ]);
+//   } catch (err: any) {
+//     // Remove the typing indicator
+//     setChatMessages(prev =>
+//       prev.filter(msg => !(msg.role === 'assistant' && msg.typing))
+//     );
+//     setChatMessages(prev => [
+//       ...prev,
+//       { role: 'assistant', content: `Sorry, I couldn't get a response. ${err?.message || ''}` }
+//     ]);
+//   } finally {
+//     setIsLoading(false);
+//   }
+// };
   // Add scroll effect for navbar
   const [isScrolled, setIsScrolled] = useState(false);
   
@@ -810,105 +811,10 @@ const handleChatSubmit = async (e: React.FormEvent) => {
         </DialogContent>
       </Dialog>
 
-  {/* AI Chatbot */}
-<div className="fixed bottom-6 right-6 z-50">
-  {!isChatOpen ? (
-    <Button
-      onClick={() => setIsChatOpen(true)}
-      className="w-16 h-16 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#4F46E5] text-white shadow-xl hover:shadow-2xl transition-transform duration-300 transform hover:-translate-y-1 border-4 border-white relative"
-      style={{
-        boxShadow: "0 8px 32px 0 rgba(139, 92, 246, 0.2)"
-      }}
-    >
-      {/* Cool bot/dev icon */}
-      <span className="absolute -top-2 -right-2 w-4 h-4 bg-green-400 border-2 border-white rounded-full animate-pulse" title="Online"></span>
-      <Brain size={32} className="mx-auto animate-bounce-slow" />
-    </Button>
-  ) : (
-    <Card className="w-96 h-[28rem] bg-white shadow-2xl border-[#EDEAE5] rounded-2xl overflow-hidden animate-fade-in-fast">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-[#EDEAE5] bg-gradient-to-r from-[#8B5CF6] via-[#7C3AED] to-[#4F46E5] text-white rounded-t-2xl">
-        <div className="flex items-center space-x-3">
-          <div className="relative">
-            {/* Bot Avatar with glow */}
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#4F46E5] flex items-center justify-center shadow-lg ring-2 ring-white">
-              <Code size={26} />
-            </div>
-            <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 border-2 border-white rounded-full animate-pulse" title="Online"></span>
-          </div>
-          <div>
-            <div className="font-bold text-lg">AI Engineer</div>
-            <div className="text-xs text-green-100 font-mono">Online</div>
-          </div>
-        </div>
-        <Button
-          onClick={() => setIsChatOpen(false)}
-          variant="ghost"
-          size="sm"
-          className="text-white hover:bg-white/20 p-1"
-        >
-          <X size={18} />
-        </Button>
-      </div>
-      {/* Chat area */}
-      <div className="flex flex-col h-[22rem]">
-        <div className="flex-1 p-4 overflow-y-auto space-y-4 custom-scroll">
-          {chatMessages.map((message, index) => (
-            <div
-              key={index}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`
-                  rounded-2xl px-5 py-3 max-w-[75%] shadow 
-                  ${message.role === 'user'
-                    ? 'bg-gradient-to-tr from-[#8B5CF6] to-[#4F46E5] text-white font-medium'
-                    : 'bg-[#F6F3EF] text-[#333333] border border-[#EDEAE5]'}
-                  ${message.role === 'assistant' ? 'bot-bubble-glow' : ''}
-                `}
-                style={message.role === 'assistant' ? { fontFamily: "Fira Mono, monospace" } : {}}
-              >
-                {message.content}
-              </div>
-            </div>
-          ))}
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-[#F6F3EF] p-3 rounded-2xl border border-[#EDEAE5] shadow bot-bubble-glow">
-                <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-[#8B5CF6] rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-[#8B5CF6] rounded-full animate-bounce animation-delay-100"></div>
-                  <div className="w-2 h-2 bg-[#8B5CF6] rounded-full animate-bounce animation-delay-200"></div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-        {/* Input */}
-        <form onSubmit={handleChatSubmit} className="p-4 border-t border-[#EDEAE5] bg-[#FAF9F6]">
-          <div className="flex space-x-2">
-            <Input
-              value={currentMessage}
-              onChange={(e) => setCurrentMessage(e.target.value)}
-              placeholder="Type your message... (e.g. 'How do you build scalable apps?')"
-              className="flex-1 border-[#EDEAE5] focus:border-[#8B5CF6] rounded-full px-4"
-              autoFocus
-              disabled={isLoading}
-            />
-            <Button
-              type="submit"
-              disabled={isLoading || !currentMessage.trim()}
-              className="bg-gradient-to-br from-[#8B5CF6] to-[#4F46E5] text-white rounded-full shadow hover:scale-105 transition-transform"
-              title="Send"
-            >
-              <ArrowRight size={20} />
-            </Button>
-          </div>
-        </form>
-      </div>
-    </Card>
-  )}
-</div>
+  {/* --- Your Chatbot Component --- */}
+      {/* It will float at the bottom-right due to its internal CSS */}
+      <Chatbot />
+      {/* --- End Chatbot Component --- */}
     </div>
   );
 }

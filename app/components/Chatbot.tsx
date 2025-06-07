@@ -6,19 +6,15 @@ import React, { useState, useRef, useEffect, FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea'; // Assuming you have a Textarea component, if not, use a standard <textarea> tag
+import { Textarea } from '@/components/ui/textarea'; // Assuming you have a Textarea component
 
 // Icons from lucide-react (install if you haven't: npm install lucide-react)
 import { Brain, Code, X, ArrowRight, Loader2, CheckCircle, XCircle } from 'lucide-react';
 
-// Define the exact phrase the AI will use to trigger the contact form.
-// This MUST match *perfectly* what you've set in your Cloudflare Worker's fullPrompt.
 const CONTACT_FORM_TRIGGER_PHRASE = "**Ready to discuss your project? Please share your contact information (email/phone) and a brief overview of your needs. We'll connect with you promptly for a tailored discussion.**";
 
-// Get the Cloudflare Worker URL from environment variables
-// This should be set in your .env.local file and Vercel environment variables
 const WORKER_URL = process.env.NEXT_PUBLIC_CLOUDFLARE_WORKER_URL;
-const RENDER_BACKEND_URL = process.env.NEXT_PUBLIC_RENDER_BACKEND_URL;
+const RENDER_BACKEND_URL = process.env.NEXT_PUBLIC_RENDER_BACKEND_URL; // Your Render backend URL
 
 interface Message {
   role: 'user' | 'assistant';
@@ -32,7 +28,7 @@ export default function Chatbot() {
   const [currentMessage, setCurrentMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false); // For chat messages loading state
 
-  // --- New state for Contact Form ---
+  // --- Contact Form States ---
   const [showContactForm, setShowContactForm] = useState(false);
   const [contactName, setContactName] = useState('');
   const [contactEmail, setContactEmail] = useState('');
@@ -40,12 +36,13 @@ export default function Chatbot() {
   const [formSending, setFormSending] = useState(false); // For contact form submission loading state
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-  // --- End New state ---
 
-  // --- State for initial greeting ---
+  // --- Initial greeting state ---
   const [hasChatOpenedBefore, setHasChatOpenedBefore] = useState(false);
 
+  // --- Refs for scrolling and click outside ---
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatRef = useRef<HTMLDivElement>(null); // Ref for the entire chat window
 
   // Auto-scroll to the bottom of the chat or contact form whenever messages or state change
   useEffect(() => {
@@ -60,11 +57,32 @@ export default function Chatbot() {
       setChatMessages([
         { role: 'assistant', content: "Hi! I'm here to help you learn more about my work and experience. What would you like to know?" }
       ]);
-      setHasChatOpenedBefore(true); // Mark that the chat has been opened
+      setHasChatOpenedBefore(true);
     }
-  }, [isChatOpen, hasChatOpenedBefore]); // Dependencies: run when chat state or hasOpenedBefore changes
+  }, [isChatOpen, hasChatOpenedBefore]);
 
-  // --- MODIFIED handleChatSubmit Function ---
+  // --- NEW: Click outside to close chat functionality ---
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      // If the chat is open AND the click happened outside the chat window element
+      if (isChatOpen && chatRef.current && !chatRef.current.contains(event.target as Node)) {
+        setIsChatOpen(false); // Close the chat
+      }
+    }
+
+    // Add event listener when chat is open
+    if (isChatOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    // Clean up the event listener when component unmounts or chat closes
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isChatOpen]); // Rerun effect when isChatOpen changes
+
+  // ... (handleChatSubmit and handleContactFormSubmit functions remain the same as before) ...
+
   const handleChatSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
@@ -75,13 +93,12 @@ export default function Chatbot() {
     setChatMessages(prev => [...prev, { role: 'user', content: userMessageContent }]);
     setIsLoading(true);
 
-    // Add a typing indicator for the assistant immediately
     const typingIndicator: Message = { role: 'assistant', content: '•••', typing: true };
     setChatMessages(prev => [...prev, typingIndicator]);
 
     try {
       if (!WORKER_URL) {
-        throw new Error('Cloudflare Worker URL is not configured. Please check your .env.local file.');
+        throw new Error('Cloudflare Worker URL is not configured.');
       }
 
       const res = await fetch(WORKER_URL, {
@@ -98,119 +115,105 @@ export default function Chatbot() {
       const data = await res.json();
       const botResponseContent = data.response;
 
-      // Remove the typing indicator before adding the actual response
       setChatMessages(prev =>
         prev.filter(msg => !(msg.role === 'assistant' && msg.typing))
       );
 
-      // Add the actual bot response
       setChatMessages(prev => [
         ...prev,
         { role: 'assistant', content: botResponseContent }
       ]);
 
-      // *** NEW CORE LOGIC: Check if the bot's response contains the trigger phrase ***
       if (botResponseContent.includes(CONTACT_FORM_TRIGGER_PHRASE)) {
-        setShowContactForm(true); // Toggle state to show the contact form
-        setFormSuccess(null); // Clear any old form success/error messages
+        setShowContactForm(true);
+        setFormSuccess(null);
         setFormError(null);
       }
 
     } catch (err: any) {
-      // Ensure typing indicator is removed even on error
       setChatMessages(prev =>
         prev.filter(msg => !(msg.role === 'assistant' && msg.typing))
       );
-      // Display an error message to the user
       setChatMessages(prev => [
         ...prev,
         { role: 'assistant', content: `Oops! I couldn't get a response. Error: ${err?.message || 'Please try again.'}` }
       ]);
     } finally {
-      setIsLoading(false); // Always set loading to false
+      setIsLoading(false);
     }
   };
 
-  // --- NEW handleContactFormSubmit Function ---
-const handleContactFormSubmit = async (e: FormEvent) => {
-  e.preventDefault();
-  setFormSending(true);
-  setFormError(null);
-  setFormSuccess(null);
 
-  const lastUserQuery = chatMessages.filter(msg => msg.role === 'user').pop()?.content || '';
-  const lastBotResponse = chatMessages.filter(msg => msg.role === 'assistant' && !msg.typing).pop()?.content || '';
+  const handleContactFormSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setFormSending(true);
+    setFormError(null);
+    setFormSuccess(null);
 
-  try {
-    if (!RENDER_BACKEND_URL) {
-      throw new Error('Render Backend URL is not configured. Please check your .env.local file.');
+    const lastUserQuery = chatMessages.filter(msg => msg.role === 'user').pop()?.content || '';
+    const lastBotResponse = chatMessages.filter(msg => msg.role === 'assistant' && !msg.typing).pop()?.content || '';
+
+    try {
+      if (!RENDER_BACKEND_URL) {
+        throw new Error('Render Backend URL is not configured. Please check your .env.local file.');
+      }
+
+      const response = await fetch(`${RENDER_BACKEND_URL}/api/chatbot-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: contactName,
+          email: contactEmail,
+          project: projectOverview,
+          userQuery: lastUserQuery,
+          botResponse: lastBotResponse,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to send your information.');
+      }
+
+      setFormSuccess("Awesome! We've received your details and will be in touch soon for a tailored discussion.");
+      setContactName('');
+      setContactEmail('');
+      setProjectOverview('');
+
+    } catch (err: any) {
+      setFormError(`Failed to send details: ${err?.message || 'Please try again.'}`);
+    } finally {
+      setFormSending(false);
     }
-
-    // --- THIS IS THE LINE TO CHANGE ---
-    // Change from '/api/contact' to '/api/chatbot-email'
-    const response = await fetch(`${RENDER_BACKEND_URL}/api/chatbot-email`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name: contactName,
-        email: contactEmail,
-        project: projectOverview,
-        userQuery: lastUserQuery,
-        botResponse: lastBotResponse,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to send your information.');
-    }
-
-    setFormSuccess("Awesome! We've received your details and will be in touch soon for a tailored discussion.");
-    setContactName('');
-    setContactEmail('');
-    setProjectOverview('');
-
-  } catch (err: any) {
-    setFormError(`Failed to send details: ${err?.message || 'Please try again.'}`);
-  } finally {
-    setFormSending(false);
-  }
-};
+  };
 
 
   return (
-    // Outer container for the fixed chatbot position
     <div className="fixed bottom-6 right-6 z-50">
       {!isChatOpen ? (
-        // Chat open button
         <Button
           onClick={() => setIsChatOpen(true)}
           className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-600 to-purple-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 relative group overflow-hidden"
           style={{
-            boxShadow: "0 10px 30px rgba(99, 102, 241, 0.4)", // Deeper shadow for the button
+            boxShadow: "0 10px 30px rgba(99, 102, 241, 0.4)",
           }}
         >
-          {/* Online status dot */}
           <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full animate-pulse-fast" title="Online"></span>
-          {/* Main icon with subtle hover effect */}
           <Brain size={30} className="mx-auto transition-transform duration-300 group-hover:scale-110" />
-          {/* Subtle glow effect on hover for the button */}
           <span className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300 blur-sm"></span>
         </Button>
       ) : (
-        // Main Chat Window
-        <Card className="w-[98vw] max-w-[400px] h-[75vh] max-h-[560px] bg-gray-50 shadow-2xl border border-gray-200 rounded-3xl overflow-hidden animate-scale-in-fade flex flex-col">
+        // --- Added ref={chatRef} to the main chat window Card ---
+        <Card ref={chatRef} className="w-[98vw] max-w-[400px] h-[75vh] max-h-[560px] bg-gray-50 shadow-2xl border border-gray-200 rounded-3xl overflow-hidden animate-scale-in-fade flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-700 text-white rounded-t-3xl shadow-md">
             <div className="flex items-center space-x-3">
               <div className="relative">
-                {/* Header icon */}
                 <div className="w-10 h-10 rounded-full bg-white text-indigo-600 flex items-center justify-center shadow-lg ring-2 ring-white">
                   <Code size={24} />
                 </div>
-                {/* Online status dot in header */}
                 <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full animate-pulse-fast" title="Online"></span>
               </div>
               <div>
@@ -218,7 +221,7 @@ const handleContactFormSubmit = async (e: FormEvent) => {
                 <div className="text-xs text-indigo-100 opacity-90 font-mono">Online</div>
               </div>
             </div>
-            {/* Close button */}
+            {/* --- X Button to Close Chat (Already Exists!) --- */}
             <Button
               onClick={() => setIsChatOpen(false)}
               variant="ghost"
@@ -230,8 +233,9 @@ const handleContactFormSubmit = async (e: FormEvent) => {
           </div>
 
           {/* Chat message display area */}
-          <div className="flex-1 flex flex-col">
-            <div className="flex-1 px-4 py-5 overflow-y-auto space-y-4 custom-scroll bg-white">
+          {/* --- Added min-h-0 to flex containers for robust scrolling --- */}
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 px-4 py-5 overflow-y-auto space-y-4 custom-scroll bg-white min-h-0">
               {chatMessages.map((message, index) => (
                 <div
                   key={index}
@@ -251,13 +255,11 @@ const handleContactFormSubmit = async (e: FormEvent) => {
                   </div>
                 </div>
               ))}
-              {/* This ref helps with auto-scrolling to the latest message */}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* --- Conditional Input Area: Chat Input OR Contact Form --- */}
+            {/* Input Area */}
             {showContactForm ? (
-              // Contact Form UI
               <form onSubmit={handleContactFormSubmit} className="p-4 border-t border-gray-200 bg-gray-50">
                 <h3 className="text-lg font-semibold text-gray-800 mb-3 text-center">Let's Discuss Your Project!</h3>
                 <div className="space-y-3">
@@ -278,7 +280,7 @@ const handleContactFormSubmit = async (e: FormEvent) => {
                     <label htmlFor="contactEmail" className="sr-only">Your Email / Phone</label>
                     <Input
                       id="contactEmail"
-                      type="text" // Use 'text' to allow phone numbers too
+                      type="text"
                       value={contactEmail}
                       onChange={(e) => setContactEmail(e.target.value)}
                       placeholder="Your Email or Phone"
@@ -326,7 +328,6 @@ const handleContactFormSubmit = async (e: FormEvent) => {
                 </div>
               </form>
             ) : (
-              // Chat Input UI
               <form onSubmit={handleChatSubmit} className="p-4 border-t border-gray-200 bg-gray-50">
                 <div className="flex space-x-3">
                   <Input

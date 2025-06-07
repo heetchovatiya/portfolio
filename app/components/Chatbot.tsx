@@ -14,7 +14,7 @@ import { Brain, Code, X, ArrowRight, Loader2, CheckCircle, XCircle } from 'lucid
 const CONTACT_FORM_TRIGGER_PHRASE = "**Ready to discuss your project? Please share your contact information (email/phone) and a brief overview of your needs. We'll connect with you promptly for a tailored discussion.**";
 
 const WORKER_URL = process.env.NEXT_PUBLIC_CLOUDFLARE_WORKER_URL;
-const RENDER_BACKEND_URL = process.env.NEXT_PUBLIC_RENDER_BACKEND_URL; // Your Render backend URL
+const RENDER_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL; // Your Render backend URL
 
 interface Message {
   role: 'user' | 'assistant';
@@ -113,7 +113,7 @@ export default function Chatbot() {
 
       const data = await res.json();
       const botResponseContent = data.response;
-
+      
       setChatMessages(prev =>
         prev.filter(msg => !(msg.role === 'assistant' && msg.typing))
       );
@@ -123,11 +123,26 @@ export default function Chatbot() {
         { role: 'assistant', content: botResponseContent }
       ]);
 
-      if (botResponseContent.includes(CONTACT_FORM_TRIGGER_PHRASE)) {
-        setShowContactForm(true);
-        setFormSuccess(null);
-        setFormError(null);
-      }
+    //   if (botResponseContent.includes(CONTACT_FORM_TRIGGER_PHRASE)) {
+    //     setShowContactForm(true);
+    //     setFormSuccess(null);
+    //     setFormError(null);
+    //   }
+
+    const userMessageContentLower = userMessageContent.toLowerCase(); // Ensure this variable is the one user just typed
+
+// Trigger only if the user's message contains the specific phrase "schedule a meet"
+if (userMessageContentLower.includes('schedule a meet')) {
+  setShowContactForm(true);
+  setFormSuccess(null);
+  setFormError(null);
+} else if (botResponseContent.includes(CONTACT_FORM_TRIGGER_PHRASE)) {
+  // Keep the original bot-triggered phrase as an alternative,
+  // in case the bot is still designed to output it.
+  setShowContactForm(true);
+  setFormSuccess(null);
+  setFormError(null);
+}
 
     } catch (err: any) {
       setChatMessages(prev =>
